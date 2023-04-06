@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  gwvk:
+    build: "."
+    ports:
+      - "4000:8080"
+    environment:
+      - "DEVELOPMENT=1"
+    volumes:
+      - ".:/opt/app"
+
+  db:
+    image: "mariadb"
+    environment:
+      - "MARIADB_ROOT_PASSWORD=root"
+      - "MARIADB_USER=gwvk"
+      - "MARIADB_PASSWORD=gwvk"
+      - "MARIADB_DATABASE=gwvk"
+    volumes:
+      - "db-data:/var/lib/mysql"
+
+  phpmyadmin:
+    image: "phpmyadmin/phpmyadmin"
+    ports:
+      - "4080:80"
+    volumes:
+      - "phpmyadmin-sessions:/sessions"
+
+volumes:
+  db-data: ~
+  phpmyadmin-sessions: ~

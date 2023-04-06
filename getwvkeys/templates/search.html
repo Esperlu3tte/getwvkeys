@@ -1,4 +1,4 @@
-<!-- 
+{# <!-- 
   This file is part of the GetWVKeys project (https://github.com/GetWVKeys/getwvkeys)
   Copyright (C) 2022 Notaghost, Puyodead1 and GetWVKeys contributors 
   
@@ -13,7 +13,7 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
- -->
+ --> #}
 
 {% extends "base.html" %} {% block title %}Search{% endblock %} {% block js %}
 <script defer src="{{url_for('static', filename='search.js')}}"></script>
@@ -48,7 +48,7 @@
       <pre>Send a request to see the result.</pre>
     </div>
   </div>
-  <div class="donation-container">
+  {# <div class="donation-container">
     <table>
       <tbody>
         <tr>
@@ -75,6 +75,6 @@
         </tr>
       </tbody>
     </table>
-  </div>
+  </div> #}
 </section>
 {% endblock %}

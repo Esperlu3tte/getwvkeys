@@ -1,4 +1,4 @@
-<!-- 
+{# <!-- 
   This file is part of the GetWVKeys project (https://github.com/GetWVKeys/getwvkeys)
   Copyright (C) 2022 Notaghost, Puyodead1 and GetWVKeys contributors 
   
@@ -13,7 +13,7 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
- -->
+ --> #}
 
 {% extends "base.html" %} {% block title %}Admin - View User{% endblock %} {%
 block content %}
@@ -23,13 +23,13 @@ block content %}
   </header>
   <div class="form-container">
     <div class="profile-container container-center">
-      <img
+      {# <img
         class="avatar"
         src="https://cdn.discordapp.com/avatars/{{user.id}}/{{user.avatar}}.png?size=2048"
         alt="Avatar"
         width="128px"
         height="128px"
-      />
+      /> #}
       <div class="profile-info">
         <h2 class="profile-info-header">
           {{user.username}}#{{user.discriminator}}

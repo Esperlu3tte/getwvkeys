@@ -46,20 +46,6 @@ from getwvkeys.utils import (
 
 logger = logging.getLogger("getwvkeys")
 
-common_privacy_cert = (
-    "CAUSxwUKwQIIAxIQFwW5F8wSBIaLBjM6L3cqjBiCtIKSBSKOAjCCAQoCggEBAJntWzsyfateJO/DtiqVtZhSCtW8y"
-    "zdQPgZFuBTYdrjfQFEEQa2M462xG7iMTnJaXkqeB5UpHVhYQCOn4a8OOKkSeTkwCGELbxWMh4x+Ib/7/up34QGeHl"
-    "eB6KRfRiY9FOYOgFioYHrc4E+shFexN6jWfM3rM3BdmDoh+07svUoQykdJDKR+ql1DghjduvHK3jOS8T1v+2RC/TH"
-    "hv0CwxgTRxLpMlSCkv5fuvWCSmvzu9Vu69WTi0Ods18Vcc6CCuZYSC4NZ7c4kcHCCaA1vZ8bYLErF8xNEkKdO7Dev"
-    "Sy8BDFnoKEPiWC8La59dsPxebt9k+9MItHEbzxJQAZyfWgkCAwEAAToUbGljZW5zZS53aWRldmluZS5jb20SgAOuN"
-    "HMUtag1KX8nE4j7e7jLUnfSSYI83dHaMLkzOVEes8y96gS5RLknwSE0bv296snUE5F+bsF2oQQ4RgpQO8GVK5uk5M"
-    "4PxL/CCpgIqq9L/NGcHc/N9XTMrCjRtBBBbPneiAQwHL2zNMr80NQJeEI6ZC5UYT3wr8+WykqSSdhV5Cs6cD7xdn9"
-    "qm9Nta/gr52u/DLpP3lnSq8x2/rZCR7hcQx+8pSJmthn8NpeVQ/ypy727+voOGlXnVaPHvOZV+WRvWCq5z3CqCLl5"
-    "+Gf2Ogsrf9s2LFvE7NVV2FvKqcWTw4PIV9Sdqrd+QLeFHd/SSZiAjjWyWOddeOrAyhb3BHMEwg2T7eTo/xxvF+YkP"
-    "j89qPwXCYcOxF+6gjomPwzvofcJOxkJkoMmMzcFBDopvab5tDQsyN9UPLGhGC98X/8z8QSQ+spbJTYLdgFenFoGq4"
-    "7gLwDS6NWYYQSqzE3Udf2W7pzk4ybyG4PHBYV3s4cyzdq8amvtE/sNSdOKReuHpfQ="
-)
-
 sessions = dict()
 
 
@@ -568,10 +554,12 @@ class User(UserMixin):
             discriminator=userinfo.get("discriminator"),
             avatar=userinfo.get("avatar"),
             public_flags=userinfo.get("public_flags"),
-            api_key=api_key,
+            api_key=api_key if not userinfo.get("api_key") else userinfo.get("api_key"),
+            flags=(None if not userinfo.get("flags") else userinfo.get("flags")) if not userinfo.get("flags_raw") else userinfo.get("flags_raw"),
         )
         db.session.add(user)
         db.session.commit()
+        return user
 
     @staticmethod
     def update(db: SQLAlchemy, userinfo: dict):
@@ -584,35 +572,39 @@ class User(UserMixin):
         user.avatar = userinfo.get("avatar")
         user.public_flags = userinfo.get("public_flags")
         db.session.commit()
+        return user
 
     @staticmethod
     def user_is_in_guild(token):
-        url = "https://discord.com/api/users/@me/guilds"
-        headers = {"Authorization": f"Bearer {token}"}
-        r = requests.get(url, headers=headers)
-        if not r.ok:
-            raise Exception(f"Failed to get user guilds: [{r.status_code}] {r.text}")
-        guilds = r.json()
-        is_in_guild = any(guild.get("id") == config.GUILD_ID for guild in guilds)
-        return is_in_guild
+        # url = "https://discord.com/api/users/@me/guilds"
+        # headers = {"Authorization": f"Bearer {token}"}
+        # r = requests.get(url, headers=headers)
+        # if not r.ok:
+        #     raise Exception(f"Failed to get user guilds: [{r.status_code}] {r.text}")
+        # guilds = r.json()
+        # is_in_guild = any(guild.get("id") == config.GUILD_ID for guild in guilds)
+        # return is_in_guild
+        return True
 
     @staticmethod
     def user_is_verified(token):
-        url = f"https://discord.com/api/users/@me/guilds/{config.GUILD_ID}/member"
-        headers = {
-            "Authorization": f"Bearer {token}",
-        }
-        r = requests.get(url, headers=headers)
-        if not r.ok:
-            raise Exception(f"Failed to get guild member: [{r.status_code}] {r.text}")
-        data = r.json()
-        return any(role == config.VERIFIED_ROLE_ID for role in data.get("roles"))
+        # url = f"https://discord.com/api/users/@me/guilds/{config.GUILD_ID}/member"
+        # headers = {
+        #     "Authorization": f"Bearer {token}",
+        # }
+        # r = requests.get(url, headers=headers)
+        # if not r.ok:
+        #     raise Exception(f"Failed to get guild member: [{r.status_code}] {r.text}")
+        # data = r.json()
+        # return any(role == config.VERIFIED_ROLE_ID for role in data.get("roles"))
+        return True
 
     @staticmethod
     def is_api_key_bot(api_key):
-        """checks if the api key is from the bot"""
-        bot_key = base64.b64encode("{}:{}".format(config.OAUTH2_CLIENT_ID, config.OAUTH2_CLIENT_SECRET).encode()).decode("utf8")
-        return api_key == bot_key
+        # """checks if the api key is from the bot"""
+        # bot_key = base64.b64encode("{}:{}".format(config.OAUTH2_CLIENT_ID, config.OAUTH2_CLIENT_SECRET).encode()).decode("utf8")
+        # return api_key == bot_key
+        return False
 
     @staticmethod
     def get_user_by_api_key(db: SQLAlchemy, api_key):

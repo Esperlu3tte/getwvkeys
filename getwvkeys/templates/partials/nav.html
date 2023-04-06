@@ -1,4 +1,4 @@
-<!-- 
+{# <!-- 
   This file is part of the GetWVKeys project (https://github.com/GetWVKeys/getwvkeys)
   Copyright (C) 2022 Notaghost, Puyodead1 and GetWVKeys contributors 
   
@@ -13,7 +13,7 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
- -->
+ --> #}
 
 <nav>
   <ul class="nav-list">
@@ -26,13 +26,13 @@
     <li class="nav-item"><a href="/faq">FAQ</a></li>
     <div class="dropdown">
       <div class="dropdown-item">
-        <img
+        {# <img
           class="avatar"
           src="https://cdn.discordapp.com/avatars/{{current_user.id}}/{{current_user.avatar}}.png?size=2048"
           alt="Avatar"
           width="40px"
           height="40px"
-        />
+        /> #}
         <div class="dropdown-label">
           <div class="dropdown-label-text">{{current_user.username}}</div>
           <i class="fa-solid fa-caret-down"></i>
@@ -40,13 +40,13 @@
       </div>
       <div class="dropdown-menu">
         <a href="/me">Profile</a>
-        <hr />
-        <a href="/logout">Logout</a>
+        {# <hr />
+        <a href="/logout">Logout</a> #}
       </div>
     </div>
     {% else %}
     <li class="nav-item"><a href="/">Home</a></li>
-    <li class="nav-item"><a href="/login">Login</a></li>
+    {# <li class="nav-item"><a href="/login">Login</a></li> #}
     {% endif %}
   </ul>
 </nav>

@@ -53,6 +53,7 @@ from werkzeug.exceptions import (
     Unauthorized,
     UnsupportedMediaType,
 )
+from werkzeug.datastructures import WWWAuthenticate
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from getwvkeys import config, libraries
@@ -75,7 +76,7 @@ logger = construct_logger()
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-client = WebApplicationClient(config.OAUTH2_CLIENT_ID)
+#client = WebApplicationClient(config.OAUTH2_CLIENT_ID)
 
 # get current git commit sha
 sha = Version.from_git().serialize(style=Style.SemVer, dirty=True, format="{base}-post.{distance}+{commit}.{dirty}.{branch}")
@@ -111,7 +112,13 @@ def authentication_required(exempt_methods=[], flags_required: int = None, ignor
                 # check if they passed in an api key
                 api_key = request.headers.get("X-API-Key") or request.form.get("X-API-Key") or request.headers.get("Authorization") or request.form.get("Authorization")
                 if not api_key:
-                    raise Unauthorized("API Key Required")
+                    # raise Unauthorized("API Key Required")
+                    raise Unauthorized("API Key Required", www_authenticate=WWWAuthenticate(auth_type="Basic"))
+
+                basicAuth = False
+                if api_key.startswith("Basic "):
+                    basicAuth = True
+                    api_key = base64.b64decode(api_key.split()[1]).decode("utf-8").split(":")[1]
 
                 # check if the key is a bot
                 if libraries.User.is_api_key_bot(api_key):
@@ -121,7 +128,12 @@ def authentication_required(exempt_methods=[], flags_required: int = None, ignor
                 user = libraries.User.get_user_by_api_key(db, api_key)
 
                 if not user:
-                    raise Forbidden("Invalid API Key")
+                    # raise Forbidden("Invalid API Key")
+                    message = "Invalid API Key"
+                    if basicAuth:
+                        raise Unauthorized(message, www_authenticate=WWWAuthenticate(auth_type="Basic"))
+                    else:
+                        raise Forbidden(message)
 
                 login_user(user, remember=False)
 
@@ -411,63 +423,62 @@ def vinetrimmer():
     return jsonify({"status_code": 400, "message": "Invalid Method"})
 
 
-# auth endpoints
-@app.route("/login")
-def login():
-    if current_user.is_authenticated:
-        return redirect("/")
-    request_uri = client.prepare_request_uri(
-        "https://discord.com/api/oauth2/authorize",
-        redirect_uri=config.OAUTH2_REDIRECT_URL,
-        scope=["guilds", "guilds.members.read", "identify"],
-    )
-    return render_template("login.html", auth_url=request_uri, current_user=current_user, website_version=sha)
+# # auth endpoints
+# @app.route("/login")
+# def login():
+#     if current_user.is_authenticated:
+#         return redirect("/")
+#     request_uri = client.prepare_request_uri(
+#         "https://discord.com/api/oauth2/authorize",
+#         redirect_uri=config.OAUTH2_REDIRECT_URL,
+#         scope=["guilds", "guilds.members.read", "identify"],
+#     )
+#     return render_template("login.html", auth_url=request_uri, current_user=current_user, website_version=sha)
 
 
-@app.route("/login/callback")
-def login_callback():
-    code = request.args.get("code")
-    if not code:
-        return render_template("error.html", page_title="Error", error="No code provided")
-    token_url, headers, body = client.prepare_token_request(
-        "https://discord.com/api/oauth2/token",
-        authorization_response=request.url,
-        redirect_url=config.OAUTH2_REDIRECT_URL,
-        code=code,
-    )
-    token_response = requests.post(
-        token_url,
-        headers=headers,
-        data=body,
-        auth=(config.OAUTH2_CLIENT_ID, config.OAUTH2_CLIENT_SECRET),
-    )
-    client.parse_request_body_response(json.dumps(token_response.json()))
-    uri, headers, body = client.add_token("https://discord.com/api/oauth2/@me")
-    info_response = requests.get(uri, headers=headers, data=body)
-    info = info_response.json()
-    userinfo = info.get("user")
-    user = libraries.User.get(db, userinfo.get("id"))
-    if not user:
-        libraries.User.create(db, userinfo)
-        user = libraries.User.get(db, userinfo.get("id"))
-    else:
-        # update the user info in the database as some fields can change like username
-        libraries.User.update(db, userinfo)
-    # check if the user is in the getwvkeys server
-    is_in_guild = libraries.User.user_is_in_guild(client.access_token)
-    if not is_in_guild:
-        session.clear()
-        raise Forbidden("You must be in our Discord support server and be verified to use this service. You can join our server here: https://discord.gg/ezK22qJFR8")
-    # check if the user is verified
-    user_is_verified = libraries.User.user_is_verified(client.access_token)
-    if not user_is_verified:
-        session.clear()
-        raise Forbidden("You must be verified to use this service. Please read the #rules channel.")
-    login_user(user, True)
-    # flash("Welcome, {}!".format(user.username), "success")
-    resp = make_response(redirect("/"))
-    resp.set_cookie("api_key", user.api_key)
-    return resp
+# @app.route("/login/callback")
+# def login_callback():
+#     code = request.args.get("code")
+#     if not code:
+#         return render_template("error.html", page_title="Error", error="No code provided")
+#     token_url, headers, body = client.prepare_token_request(
+#         "https://discord.com/api/oauth2/token",
+#         authorization_response=request.url,
+#         redirect_url=config.OAUTH2_REDIRECT_URL,
+#         code=code,
+#     )
+#     token_response = requests.post(
+#         token_url,
+#         headers=headers,
+#         data=body,
+#         auth=(config.OAUTH2_CLIENT_ID, config.OAUTH2_CLIENT_SECRET),
+#     )
+#     client.parse_request_body_response(json.dumps(token_response.json()))
+#     uri, headers, body = client.add_token("https://discord.com/api/oauth2/@me")
+#     info_response = requests.get(uri, headers=headers, data=body)
+#     info = info_response.json()
+#     userinfo = info.get("user")
+#     user = libraries.User.get(db, userinfo.get("id"))
+#     if not user:
+#         user = libraries.User.create(db, userinfo)
+#     else:
+#         # update the user info in the database as some fields can change like username
+#         libraries.User.update(db, userinfo)
+#     # check if the user is in the getwvkeys server
+#     is_in_guild = libraries.User.user_is_in_guild(client.access_token)
+#     if not is_in_guild:
+#         session.clear()
+#         raise Forbidden("You must be in our Discord support server and be verified to use this service. You can join our server here: https://discord.gg/ezK22qJFR8")
+#     # check if the user is verified
+#     user_is_verified = libraries.User.user_is_verified(client.access_token)
+#     if not user_is_verified:
+#         session.clear()
+#         raise Forbidden("You must be verified to use this service. Please read the #rules channel.")
+#     login_user(user, True)
+#     # flash("Welcome, {}!".format(user.username), "success")
+#     resp = make_response(redirect("/"))
+#     resp.set_cookie("api_key", user.api_key)
+#     return resp
 
 
 @app.route("/logout")
@@ -514,9 +525,9 @@ def http_exception(e: HTTPException):
     if config.IS_DEVELOPMENT:
         logger.exception(e)
     if request.method == "GET":
-        if e.code == 401:
-            return app.login_manager.unauthorized()
-        return render_template("error.html", title=e.name, details=e.description, current_user=current_user, website_version=sha), e.code
+        # if e.code == 401:
+        #     return app.login_manager.unauthorized()
+        return render_template("error.html", title=e.name, details=e.description, current_user=current_user, website_version=sha), e.code, e.get_headers()
     return jsonify({"error": True, "code": e.code, "message": e.description}), e.code
 
 
@@ -529,43 +540,43 @@ def gone_exception(e: Gone):
     return jsonify({"error": True, "code": 500, "message": "The page you are looking for is no longer available."}), e.code
 
 
-@app.errorhandler(OAuth2Error)
-def oauth2_error(e: OAuth2Error):
-    if config.IS_DEVELOPMENT:
-        logger.exception(e)
-    logger.error(e)
-    return render_template("error.html", title=e.description, details="The code was probably already used or is invalid.", current_user=current_user, website_version=sha), e.status_code
+# @app.errorhandler(OAuth2Error)
+# def oauth2_error(e: OAuth2Error):
+#     if config.IS_DEVELOPMENT:
+#         logger.exception(e)
+#     logger.error(e)
+#     return render_template("error.html", title=e.description, details="The code was probably already used or is invalid.", current_user=current_user, website_version=sha), e.status_code
 
 
-@login_manager.unauthorized_handler
-def unauthorized_callback():
-    return redirect("/login?next=" + request.path)
+# @login_manager.unauthorized_handler
+# def unauthorized_callback():
+#     return redirect("/login?next=" + request.path)
 
 
 class Moved(HTTPException):
     code = 410
 
 
-# routes that are removed
-@app.route("/pssh")
-def pssh():
-    raise Moved("This route is no longer available, please use /pywidevine instead")
+# # routes that are removed
+# @app.route("/pssh")
+# def pssh():
+#     raise Moved("This route is no longer available, please use /pywidevine instead")
 
 
-# routes that have been moved
-@app.route("/findpssh", methods=["GET", "POST"])
-def findpssh():
-    return jsonify({"error": True, "code": 301, "message": "The page you are looking for has been moved to /search."}), 409
+# # routes that have been moved
+# @app.route("/findpssh", methods=["GET", "POST"])
+# def findpssh():
+#     return jsonify({"error": True, "code": 301, "message": "The page you are looking for has been moved to /search."}), 409
 
 
-@app.route("/dev", methods=["GET", "POST"])
-def dev():
-    return jsonify({"error": True, "code": 301, "message": "The page you are looking for has been moved to /keys."}), 409
+# @app.route("/dev", methods=["GET", "POST"])
+# def dev():
+#     return jsonify({"error": True, "code": 301, "message": "The page you are looking for has been moved to /keys."}), 409
 
 
-@app.route("/download/<file>")
-def downloadfile_old(file):
-    return redirect("/scripts/{}".format(file), 301)
+# @app.route("/download/<file>")
+# def downloadfile_old(file):
+#     return redirect("/scripts/{}".format(file), 301)
 
 
 def main():
